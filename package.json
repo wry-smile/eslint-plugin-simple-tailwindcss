@@ -1,6 +1,6 @@
 {
   "name": "@wry-smile/eslint-plugin-simple-tailwindcss",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "ESLint plugin that keeps Tailwind CSS class usage consistent across Vue, JSX, and utility helpers.",
   "type": "module",
   "main": "dist/index.cjs",
@@ -9,7 +9,7 @@
   "exports": {
     ".": {
       "require": "./dist/index.cjs",
-      "import": "./dist/index.mjs",
+      "import": "./dist/index.js",
       "types": "./dist/index.d.ts"
     }
   },

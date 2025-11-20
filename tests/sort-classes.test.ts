@@ -69,11 +69,11 @@ describe("simple-tailwindcss/sort-classes", () => {
       valid: [],
       invalid: [
         {
-          code: "const button = cva('text-sm font-semibold flex gap-4');",
+          code: "const button = cva('font-semibold text-sm flex gap-4');",
           options: [
             {
               classRegex: [
-                ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*).*?[\"'`]"],
+                ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]+)[\"'`]"],
               ],
             },
           ],
@@ -112,6 +112,38 @@ describe("simple-tailwindcss/sort-classes", () => {
             },
           ],
           output: '<div className="bg-red-500 flex" />',
+          errors: [{ messageId: "unsorted" }],
+        },
+      ],
+    });
+  });
+
+  it("handles cn() function calls in Vue template :class bindings", () => {
+    vueRuleTester.run("sort-classes", sortClassesRule, {
+      valid: [],
+      invalid: [
+        {
+          code: `<template>
+  <section
+    :class="cn('relative size-full  rounded text-sm ', props.class)"
+    role="table"
+  >
+  </section>
+</template>`,
+          options: [
+            {
+              classRegex: [
+                ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]+)[\"'`]"],
+              ],
+            },
+          ],
+          output: `<template>
+  <section
+    :class="cn('relative size-full text-sm rounded', props.class)"
+    role="table"
+  >
+  </section>
+</template>`,
           errors: [{ messageId: "unsorted" }],
         },
       ],

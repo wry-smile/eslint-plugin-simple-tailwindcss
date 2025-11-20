@@ -36,7 +36,7 @@ Enable the rule and (optionally) extend class extraction:
         "classRegex": [
           [
             "cva\\(([^)]*)\\)",
-            "[\"'`]([^\"'`]*).*?[\"'`]"
+            "[\"'`]([^\"'`]+)[\"'`]"
           ],
           "clsx\\(([^)]*)\\)"
         ],

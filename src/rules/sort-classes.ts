@@ -15,7 +15,7 @@ type Options = [
 
 type MessageIds = "unsorted";
 const DEFAULT_CLASS_REGEX: ClassRegexEntry[] = [
-  ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]*) .*?[\"'`]"],
+  ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]+)[\"'`]"],
   "clsx\\(([^)]*)\\)",
   "cn\\(([^)]*)\\)",
   "twMerge\\(([^)]*)\\)",
@@ -310,6 +310,20 @@ const rule: TSESLint.RuleModule<MessageIds, Options> = {
               ];
               visitLiteralRange(range, node.value.value);
             }
+          },
+          "VElement:exit"() {
+            // Process classRegex in Vue template after all elements are visited
+            classRegex.forEach((entry) =>
+              applyRegexEntry(sourceCode, entry, (match) =>
+                handleLiteralValue(
+                  context,
+                  match.range,
+                  match.value,
+                  reportedRanges,
+                  formatClassList,
+                ),
+              ),
+            );
           },
         },
         undefined,
