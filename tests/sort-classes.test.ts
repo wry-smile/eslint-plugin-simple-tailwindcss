@@ -1,22 +1,22 @@
-import { describe, it } from "vitest";
-import { createRequire } from "node:module";
-import { RuleTester } from "eslint";
-import sortClassesRule from "../src/rules/sort-classes.js";
+import { createRequire } from 'node:module'
+import { RuleTester } from 'eslint'
+import { describe, it } from 'vitest'
+import sortClassesRule from '../src/rules/sort-classes.js'
 
-const require = createRequire(import.meta.url);
-const tsParser = require("@typescript-eslint/parser");
-const vueParser = require("vue-eslint-parser");
+const require = createRequire(import.meta.url)
+const tsParser = require('@typescript-eslint/parser')
+const vueParser = require('vue-eslint-parser')
 
 const jsxRuleTester = new RuleTester({
   languageOptions: {
     parser: tsParser,
     parserOptions: {
       ecmaVersion: 2022,
-      sourceType: "module",
+      sourceType: 'module',
       ecmaFeatures: { jsx: true },
     },
   },
-});
+})
 
 const vueRuleTester = new RuleTester({
   languageOptions: {
@@ -24,14 +24,14 @@ const vueRuleTester = new RuleTester({
     parserOptions: {
       parser: tsParser,
       ecmaVersion: 2022,
-      sourceType: "module",
+      sourceType: 'module',
     },
   },
-});
+})
 
-describe("simple-tailwindcss/sort-classes", () => {
-  it("reorders JSX classes", () => {
-    jsxRuleTester.run("sort-classes", sortClassesRule, {
+describe('simple-tailwindcss/sort-classes', () => {
+  it('reorders JSX classes', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
       valid: [
         {
           code: '<div className="flex items-center justify-between" />',
@@ -41,64 +41,64 @@ describe("simple-tailwindcss/sort-classes", () => {
         {
           code: '<div className="items-center flex flex" />',
           output: '<div className="flex items-center" />',
-          errors: [{ messageId: "unsorted" }],
+          errors: [{ messageId: 'unsorted' }],
         },
       ],
-    });
-  });
+    })
+  })
 
-  it("reorders Vue template classes", () => {
-    vueRuleTester.run("sort-classes", sortClassesRule, {
+  it('reorders Vue template classes', () => {
+    vueRuleTester.run('sort-classes', sortClassesRule, {
       valid: [
         {
-          code: "<template><div class=\"flex gap-2\"></div></template>",
+          code: '<template><div class="flex gap-2"></div></template>',
         },
       ],
       invalid: [
         {
-          code: "<template><div class=\"gap-2 flex flex\"></div></template>",
-          output: "<template><div class=\"flex gap-2\"></div></template>",
-          errors: [{ messageId: "unsorted" }],
+          code: '<template><div class="gap-2 flex flex"></div></template>',
+          output: '<template><div class="flex gap-2"></div></template>',
+          errors: [{ messageId: 'unsorted' }],
         },
       ],
-    });
-  });
+    })
+  })
 
-  it("supports Tailwind classRegex style extraction", () => {
-    jsxRuleTester.run("sort-classes", sortClassesRule, {
+  it('supports Tailwind classRegex style extraction', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
       valid: [],
       invalid: [
         {
-          code: "const button = cva('font-semibold text-sm flex gap-4');",
+          code: 'const button = cva(\'font-semibold text-sm flex gap-4\');',
           options: [
             {
               classRegex: [
-                ["cva\\(([^)]*)\\)", "[\"'`]([^\"'`]+)[\"'`]"],
+                ['cva\\(([^)]*)\\)', '["\'`]([^"\'`]+)["\'`]'],
               ],
             },
           ],
-          output: "const button = cva('flex gap-4 font-semibold text-sm');",
-          errors: [{ messageId: "unsorted" }],
+          output: 'const button = cva(\'flex gap-4 font-semibold text-sm\');',
+          errors: [{ messageId: 'unsorted' }],
         },
       ],
-    });
-  });
+    })
+  })
 
-  it("respects default group ordering", () => {
-    jsxRuleTester.run("sort-classes", sortClassesRule, {
+  it('respects default group ordering', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
       valid: [],
       invalid: [
         {
           code: '<div className="bg-red-500 flex mt-4" />',
           output: '<div className="flex mt-4 bg-red-500" />',
-          errors: [{ messageId: "unsorted" }],
+          errors: [{ messageId: 'unsorted' }],
         },
       ],
-    });
-  });
+    })
+  })
 
-  it("allows overriding group ordering", () => {
-    jsxRuleTester.run("sort-classes", sortClassesRule, {
+  it('allows overriding group ordering', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
       valid: [],
       invalid: [
         {
@@ -106,20 +106,20 @@ describe("simple-tailwindcss/sort-classes", () => {
           options: [
             {
               groupDefinitions: [
-                { name: "backgrounds-first", matchers: ["^bg-"] },
-                { name: "layout", matchers: [".*"] },
+                { name: 'backgrounds-first', matchers: ['^bg-'] },
+                { name: 'layout', matchers: ['.*'] },
               ],
             },
           ],
           output: '<div className="bg-red-500 flex" />',
-          errors: [{ messageId: "unsorted" }],
+          errors: [{ messageId: 'unsorted' }],
         },
       ],
-    });
-  });
+    })
+  })
 
-  it("handles cn() function calls in Vue template :class bindings", () => {
-    vueRuleTester.run("sort-classes", sortClassesRule, {
+  it('handles cn() function calls in Vue template :class bindings', () => {
+    vueRuleTester.run('sort-classes', sortClassesRule, {
       valid: [],
       invalid: [
         {
@@ -133,7 +133,7 @@ describe("simple-tailwindcss/sort-classes", () => {
           options: [
             {
               classRegex: [
-                ["cn\\(([^)]*)\\)", "[\"'`]([^\"'`]+)[\"'`]"],
+                ['cn\\(([^)]*)\\)', '["\'`]([^"\'`]+)["\'`]'],
               ],
             },
           ],
@@ -144,28 +144,28 @@ describe("simple-tailwindcss/sort-classes", () => {
   >
   </section>
 </template>`,
-          errors: [{ messageId: "unsorted" }],
+          errors: [{ messageId: 'unsorted' }],
         },
       ],
-    });
-  });
+    })
+  })
 
-  it("uses default classRegex entries for cn()", () => {
-    jsxRuleTester.run("sort-classes", sortClassesRule, {
+  it('uses default classRegex entries for cn()', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
       valid: [],
       invalid: [
         {
-          code: "const classes = cn('relative size-full  rounded text-sm ', props.class);",
+          code: 'const classes = cn(\'relative size-full  rounded text-sm \', props.class);',
           output:
-            "const classes = cn('relative size-full text-sm rounded', props.class);",
-          errors: [{ messageId: "unsorted" }],
+            'const classes = cn(\'relative size-full text-sm rounded\', props.class);',
+          errors: [{ messageId: 'unsorted' }],
         },
       ],
-    });
-  });
+    })
+  })
 
-  it("keeps additional cn() arguments when classRegex lacks inner pattern", () => {
-    vueRuleTester.run("sort-classes", sortClassesRule, {
+  it('keeps additional cn() arguments when classRegex lacks inner pattern', () => {
+    vueRuleTester.run('sort-classes', sortClassesRule, {
       valid: [],
       invalid: [
         {
@@ -178,7 +178,7 @@ describe("simple-tailwindcss/sort-classes", () => {
 </template>`,
           options: [
             {
-              classRegex: ["cn\\(([^)]*)\\)"],
+              classRegex: ['cn\\(([^)]*)\\)'],
             },
           ],
           output: `<template>
@@ -188,10 +188,9 @@ describe("simple-tailwindcss/sort-classes", () => {
   >
   </section>
 </template>`,
-          errors: [{ messageId: "unsorted" }],
+          errors: [{ messageId: 'unsorted' }],
         },
       ],
-    });
-  });
-});
-
+    })
+  })
+})
