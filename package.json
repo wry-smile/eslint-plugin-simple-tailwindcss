@@ -1,18 +1,32 @@
 {
   "name": "@wry-smile/eslint-plugin-simple-tailwindcss",
+  "type": "module",
   "version": "0.2.0",
   "description": "ESLint plugin that keeps Tailwind CSS class usage consistent across Vue, JSX, and utility helpers.",
-  "type": "module",
+  "author": "@wry-smile",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/wry-smile/eslint-plugin-simple-tailwindcss"
+  },
+  "keywords": [
+    "eslint",
+    "eslintplugin",
+    "tailwindcss",
+    "sorting",
+    "clsx",
+    "cva"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
   "main": "dist/index.cjs",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "require": "./dist/index.cjs",
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
   "files": [
     "dist"
   ],
@@ -25,20 +39,6 @@
     "test": "vitest run",
     "lint": "eslint . --ext .ts"
   },
-  "keywords": [
-    "eslint",
-    "eslintplugin",
-    "tailwindcss",
-    "sorting",
-    "clsx",
-    "cva"
-  ],
-  "author": "@wry-smile",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/wry-smile/eslint-plugin-simple-tailwindcss"
-  },
-  "license": "MIT",
   "peerDependencies": {
     "eslint": "^8.57.0 || ^9.0.0"
   },
@@ -46,10 +46,12 @@
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@antfu/eslint-config": "^6.2.0",
     "@types/node": "^24.10.1",
     "@typescript-eslint/parser": "^8.46.4",
     "@typescript-eslint/utils": "^8.46.4",
     "eslint": "^9.39.1",
+    "eslint-plugin-format": "^1.0.2",
     "tsup": "^8.5.1",
     "typescript": "^5.9.3",
     "vitest": "^4.0.9",

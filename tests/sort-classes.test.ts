@@ -149,5 +149,49 @@ describe("simple-tailwindcss/sort-classes", () => {
       ],
     });
   });
+
+  it("uses default classRegex entries for cn()", () => {
+    jsxRuleTester.run("sort-classes", sortClassesRule, {
+      valid: [],
+      invalid: [
+        {
+          code: "const classes = cn('relative size-full  rounded text-sm ', props.class);",
+          output:
+            "const classes = cn('relative size-full text-sm rounded', props.class);",
+          errors: [{ messageId: "unsorted" }],
+        },
+      ],
+    });
+  });
+
+  it("keeps additional cn() arguments when classRegex lacks inner pattern", () => {
+    vueRuleTester.run("sort-classes", sortClassesRule, {
+      valid: [],
+      invalid: [
+        {
+          code: `<template>
+  <section
+    :class="cn('size-full text-sm rounded relative', props.class)"
+    role="table"
+  >
+  </section>
+</template>`,
+          options: [
+            {
+              classRegex: ["cn\\(([^)]*)\\)"],
+            },
+          ],
+          output: `<template>
+  <section
+    :class="cn('relative size-full text-sm rounded', props.class)"
+    role="table"
+  >
+  </section>
+</template>`,
+          errors: [{ messageId: "unsorted" }],
+        },
+      ],
+    });
+  });
 });
 
