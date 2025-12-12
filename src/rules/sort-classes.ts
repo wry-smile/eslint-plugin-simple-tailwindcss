@@ -30,6 +30,33 @@ interface RangeMatch {
 
 const createRegExp = (source: string) => new RegExp(source, 'g')
 
+function extractStringLiterals(text: string): Array<{ value: string, start: number, end: number }> {
+  const literals: Array<{ value: string, start: number, end: number }> = []
+  let i = 0
+  while (i < text.length) {
+    const char = text[i]
+    if (char === '"' || char === '\'' || char === '`') {
+      const quote = char
+      const start = i
+      i += 1
+      let value = ''
+      while (i < text.length) {
+        if (text[i] === quote && text[i - 1] !== '\\') {
+          literals.push({ value, start: start + 1, end: i })
+          i += 1
+          break
+        }
+        value += text[i]
+        i += 1
+      }
+    }
+    else {
+      i += 1
+    }
+  }
+  return literals
+}
+
 function findCaptureOffset(fullMatch: string, capture: string) {
   const index = fullMatch.indexOf(capture)
   return index >= 0 ? index : 0
@@ -38,11 +65,13 @@ function findCaptureOffset(fullMatch: string, capture: string) {
 function processInnerMatches(target: string, regex: RegExp, containerOffset: number, text: string, onMatch: (match: RangeMatch) => void) {
   let matched = false
   regex.lastIndex = 0
-  let innerMatch: RegExpExecArray | null
-  while ((innerMatch = regex.exec(target)) !== null) {
+  const processedRanges = new Set<string>()
+  let innerMatch: RegExpExecArray | null = regex.exec(target)
+  while (innerMatch !== null) {
     const innerFull = innerMatch[0]
     if (!innerFull) {
       regex.lastIndex += 1
+      innerMatch = regex.exec(target)
       continue
     }
     const innerValue = innerMatch[1] ?? innerFull
@@ -50,10 +79,50 @@ function processInnerMatches(target: string, regex: RegExp, containerOffset: num
       = innerMatch.index + findCaptureOffset(innerFull, innerValue)
     const start = containerOffset + innerOffset
     const end = start + innerValue.length
-    onMatch({ range: [start, end], value: text.slice(start, end) })
-    matched = true
+    const rangeKey = `${start}:${end}`
+    if (!processedRanges.has(rangeKey)) {
+      processedRanges.add(rangeKey)
+      onMatch({ range: [start, end], value: text.slice(start, end) })
+      matched = true
+    }
+    innerMatch = regex.exec(target)
   }
   return matched
+}
+
+function findMatchingParenIndex(text: string, openParenIndex: number) {
+  let i = openParenIndex + 1
+  let depth = 1
+  let inString: false | '"' | '\'' | '`' = false
+  let escaped = false
+  while (i < text.length) {
+    const ch = text[i]!
+    if (inString) {
+      if (!escaped && ch === inString) {
+        inString = false
+      }
+      escaped = !escaped && ch === '\\'
+      i += 1
+      continue
+    }
+    if (ch === '"' || ch === '\'' || ch === '`') {
+      inString = ch as any
+      escaped = false
+      i += 1
+      continue
+    }
+    if (ch === '(') {
+      depth += 1
+    }
+    else if (ch === ')') {
+      depth -= 1
+      if (depth === 0) {
+        return i
+      }
+    }
+    i += 1
+  }
+  return -1
 }
 
 function applyRegexEntry(sourceCode: SourceCode, entry: ClassRegexEntry, onMatch: (match: RangeMatch) => void) {
@@ -63,38 +132,47 @@ function applyRegexEntry(sourceCode: SourceCode, entry: ClassRegexEntry, onMatch
     : createRegExp(entry)
   const innerPattern = Array.isArray(entry) ? entry[1] : undefined
   const innerRegex = innerPattern ? createRegExp(innerPattern) : undefined
-  const implicitInnerRegex = innerRegex ? undefined : createRegExp(STRING_ARGUMENT_REGEX)
 
   let outerMatch: RegExpExecArray | null
-  while ((outerMatch = outerRegex.exec(text)) !== null) {
+  while (true) {
+    outerMatch = outerRegex.exec(text)
+    if (outerMatch === null)
+      break
+
     const matchedText = outerMatch[0]
     if (!matchedText) {
       outerRegex.lastIndex += 1
       continue
     }
 
-    const container = outerMatch[1] ?? matchedText
-    const containerOffset
-      = outerMatch.index + findCaptureOffset(matchedText, container)
+    const openRel = matchedText.indexOf('(')
+    if (openRel < 0) {
+      continue
+    }
+    const openAbs = outerMatch.index + openRel
+    const closeAbs = findMatchingParenIndex(text, openAbs)
+    if (closeAbs < 0) {
+      continue
+    }
+
+    const containerOffset = openAbs + 1
+    const container = text.slice(containerOffset, closeAbs)
 
     if (innerRegex) {
       processInnerMatches(container, innerRegex, containerOffset, text, onMatch)
       continue
     }
 
-    if (
-      implicitInnerRegex
-      && processInnerMatches(
-        container,
-        implicitInnerRegex,
-        containerOffset,
-        text,
-        onMatch,
-      )
-    ) {
+    // Fallback: extract all string literals inside container
+    const literals = extractStringLiterals(container)
+    if (literals.length > 0) {
+      for (const lit of literals) {
+        onMatch({ range: [containerOffset + lit.start, containerOffset + lit.end], value: lit.value })
+      }
       continue
     }
 
+    // If no literals matched, treat entire container as a value
     const value = container
     const start = containerOffset
     const end = start + value.length

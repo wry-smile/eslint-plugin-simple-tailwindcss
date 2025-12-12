@@ -133,7 +133,7 @@ describe('simple-tailwindcss/sort-classes', () => {
           options: [
             {
               classRegex: [
-                ['cn\\(([^)]*)\\)', '["\'`]([^"\'`]+)["\'`]'],
+                'cn\\(([^)]*)\\)',
               ],
             },
           ],
@@ -187,6 +187,31 @@ describe('simple-tailwindcss/sort-classes', () => {
     role="table"
   >
   </section>
+</template>`,
+          errors: [{ messageId: 'unsorted' }],
+        },
+      ],
+    })
+  })
+
+  it('handles cn() with complex Tailwind classes including variants and arbitrary values', () => {
+    vueRuleTester.run('sort-classes', sortClassesRule, {
+      valid: [],
+      invalid: [
+        {
+          filename: 'Component.vue',
+          code: `<template>
+  <div :class="cn('focus:shadow-[0_0_0_2px_var(--color-rose-600)] hover:border-rose-600/80 focus:border-rose-600 border-rose-600')"></div>
+</template>`,
+          options: [
+            {
+              // classRegex: [
+              // ['cn\\(([^)]*)\\)', '["\'`]([^"\'`]+)["\'`]'],
+              // ],
+            },
+          ],
+          output: `<template>
+  <div :class="cn('border-rose-600 focus:border-rose-600 hover:border-rose-600/80 focus:shadow-[0_0_0_2px_var(--color-rose-600)]')"></div>
 </template>`,
           errors: [{ messageId: 'unsorted' }],
         },

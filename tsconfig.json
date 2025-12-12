@@ -1,20 +1,19 @@
 {
   "compilerOptions": {
     "target": "ES2022",
+    "lib": ["ES2023", "dom"],
+    "rootDir": "src",
     "module": "ES2022",
     "moduleResolution": "Bundler",
-    "outDir": "dist",
-    "rootDir": "src",
+    "resolveJsonModule": true,
+    "strict": true,
     "declaration": true,
     "declarationMap": true,
-    "strict": true,
+    "outDir": "dist",
     "esModuleInterop": true,
-    "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "resolveJsonModule": true,
-    "lib": ["ES2023"]
+    "skipLibCheck": true
   },
   "include": ["src"],
   "exclude": ["dist", "node_modules"]
 }
-
