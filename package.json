@@ -20,12 +20,12 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     }
   },
-  "main": "dist/index.js",
-  "module": "dist/index.js",
+  "main": "dist/index.mjs",
+  "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
@@ -35,26 +35,27 @@
     "tag": "beta"
   },
   "scripts": {
-    "build": "tsup src/index.ts --format esm,cjs --dts --clean",
+    "build": "pnpm run build:js && pnpm run build:types",
+    "build:js": "tsdown",
+    "build:types": "tsc -p tsconfig.build.json --emitDeclarationOnly --declarationMap false",
     "test": "vitest run",
     "lint": "eslint . --ext .ts"
   },
   "peerDependencies": {
-    "eslint": "^8.57.0 || ^9.0.0"
+    "eslint": "^10.0.0 || ^9.0.0"
   },
   "dependencies": {
-    "tailwind-merge": "^3.4.0"
+    "@typescript-eslint/utils": "^8.60.1"
   },
   "devDependencies": {
-    "@antfu/eslint-config": "^6.2.0",
-    "@types/node": "^24.10.1",
-    "@typescript-eslint/parser": "^8.46.4",
-    "@typescript-eslint/utils": "^8.46.4",
-    "eslint": "^9.39.1",
-    "eslint-plugin-format": "^1.0.2",
-    "tsup": "^8.5.1",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.9",
-    "vue-eslint-parser": "^10.2.0"
+    "@antfu/eslint-config": "^9.0.0",
+    "@types/node": "^25.9.1",
+    "@typescript-eslint/parser": "^8.60.1",
+    "eslint": "^10.4.1",
+    "eslint-plugin-format": "^2.0.1",
+    "tsdown": "^0.22.1",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8",
+    "vue-eslint-parser": "^10.4.1"
   }
 }

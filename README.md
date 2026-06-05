@@ -4,10 +4,10 @@ Keep Tailwind CSS class usage predictable in Vue, JSX, and utility helpers witho
 
 ## Features
 
-- Sorts class lists deterministically and removes duplicates/conflicts via `tailwind-merge`.
+- Sorts class lists deterministically and collapses extra whitespace without removing classes.
 - Uses an internal Tailwind group ordering table so layout → spacing → typography → backgrounds follow Tailwind’s mental model.
 - Works with Vue SFC templates, JSX/TSX, and template literals.
-- Extensible extraction via `classRegex`, mirroring VS Code Tailwind CSS Intellisense configuration (`tailwindCSS.experimental.classRegex`).
+- Supports common utility helpers such as `cn`, `clsx`, `classnames`, `cva`, `twMerge`, and `tv`.
 
 ## Installation
 
@@ -24,47 +24,78 @@ yarn add -D eslint @wry-smile/eslint-plugin-simple-tailwindcss
 
 ## Usage
 
-Enable the rule and (optionally) extend class extraction:
+Most projects do not need any custom options. You only need two things:
 
-```json
-{
-  "plugins": ["simple-tailwindcss"],
-  "rules": {
-    "simple-tailwindcss/sort-classes": [
-      "warn",
-      {
-        "classRegex": [
-          [
-            "cva\\(([^)]*)\\)",
-            "[\"'`]([^\"'`]+)[\"'`]"
-          ],
-          "clsx\\(([^)]*)\\)"
-        ],
-        "debug": true,
-        "groupDefinitions": [
-          { "name": "backgrounds-first", "matchers": ["^bg-"] },
-          { "name": "everything-else", "matchers": [".*"] }
-        ]
-      }
-    ]
-  }
-}
+- Register the plugin
+- Enable the `simple-tailwindcss/sort-classes` rule
+
+Use the defaults like this:
+
+```js
+import simpleTailwindcss from '@wry-smile/eslint-plugin-simple-tailwindcss'
+
+export default [
+  {
+    plugins: {
+      'simple-tailwindcss': simpleTailwindcss,
+    },
+    rules: {
+      'simple-tailwindcss/sort-classes': 'warn',
+    },
+  },
+]
 ```
 
-When `classRegex` is omitted, the rule automatically covers:
+If you use a config factory such as `@antfu/eslint-config`, the same rule still applies: adding the plugin is not enough, you must also enable `simple-tailwindcss/sort-classes`.
+
+Out of the box, the rule already covers:
 
 - `class` in Vue templates
 - `class` / `className` in JSX attributes
-- Standalone template literals without expressions
+- Common helper calls such as `cn(...)`, `clsx(...)`, `classnames(...)`, `cva(...)`, `twMerge(...)`, and `tv(...)`
+- Class-like variables such as `clsButton` or `buttonClassNames`
 
-Each regex entry may be either:
+That means the plugin is intended to be zero-config for common Tailwind usage.
 
-1. A single regex string where the first capture group represents the class list.
-2. A tuple `[outerRegex, innerRegex]`. The outer regex selects a larger expression (e.g., `cva(...)`) and the inner regex extracts actual class strings within that expression, replicating the Tailwind CSS extension semantics.
+## Advanced options
+
+You only need options when your project uses non-default naming or custom ordering.
+
+```js
+import simpleTailwindcss from '@wry-smile/eslint-plugin-simple-tailwindcss'
+
+export default [
+  {
+    plugins: {
+      'simple-tailwindcss': simpleTailwindcss,
+    },
+    rules: {
+      'simple-tailwindcss/sort-classes': [
+        'warn',
+        {
+          callees: ['superclass'],
+          variables: ['^CLS_'],
+          debug: true,
+        },
+      ],
+    },
+  },
+]
+```
+
+Use `callees` when your project wraps class names in a custom helper like `superclass(...)`.
+
+Use `variables` when your project stores class strings in variable names outside the default patterns.
+
+Use `groupDefinitions` only when you want to replace the built-in ordering.
+
+Use `debug` when you want the rule to log what it is visiting.
+
+Legacy `classRegex` entries are still accepted for compatibility, but the rule now prefers AST-based detection so fixes only touch real string segments instead of regex-matched source slices.
 
 ## Tailwind group ordering
 
-`simple-tailwindcss/sort-classes` ships with an internal ordering table that roughly follows Tailwind’s documentation order:
+`simple-tailwindcss/sort-classes` currently uses the internal group definitions from [`src/config/group-definitions.ts`](./src/config/group-definitions.ts). That table roughly follows Tailwind’s documentation order:
 
 1. Layout
 2. Flex & Grid
@@ -82,7 +113,7 @@ Each regex entry may be either:
 14. SVG
 15. Accessibility catch-all
 
-You can fully replace or reorder these groups per-project via the `groupDefinitions` option. Each definition is an object with a `name` and an array of regex `matchers`. The first matching group wins. When you need to inspect what the rule is seeing, set `"debug": true` to log every `JSXAttribute` / `VAttribute` class value and its location.
+You can fully replace or reorder these groups per-project via the `groupDefinitions` option. Each definition is an object with a `name` and an array of regex `matchers`. The first matching group wins.
 
 ```js
 {
@@ -101,31 +132,31 @@ You can fully replace or reorder these groups per-project via the `groupDefiniti
 }
 ```
 
-If you only need the defaults, import `defaultGroupDefinitions`:
+If you want to customize the order but still start from the built-in defaults, import `defaultGroupDefinitions`:
 
 ```ts
 import simpleTailwind, {
   defaultGroupDefinitions,
-} from "@wry-smile/eslint-plugin-simple-tailwindcss";
+} from '@wry-smile/eslint-plugin-simple-tailwindcss'
 
 export default [
   {
-    plugins: { "simple-tailwindcss": simpleTailwind },
+    plugins: { 'simple-tailwindcss': simpleTailwind },
     rules: {
-      "simple-tailwindcss/sort-classes": [
-        "warn",
+      'simple-tailwindcss/sort-classes': [
+        'warn',
         { groupDefinitions: defaultGroupDefinitions },
       ],
     },
   },
-];
+]
 ```
 
 ## Formatting behavior
 
 - Whitespace between classes is collapsed to a single space.
 - Classes are sorted lexicographically (ignoring leading `!`), keeping `!`-prefixed tokens last so overrides remain effective.
-- Conflict resolution is powered by `tailwind-merge`, so incompatible utilities collapse to the last surviving class in the sorted list.
+- The rule does not merge, deduplicate, or remove classes.
 
 ## Testing
 
@@ -146,4 +177,3 @@ To debug:
 3. Use the debug console to inspect `node`, `context`, and other variables
 
 You can also enable `debug: true` in the rule options to see console logs of all processed attributes.
-
