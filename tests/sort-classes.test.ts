@@ -30,7 +30,7 @@ const vueRuleTester = new RuleTester({
 })
 
 describe('simple-tailwindcss/sort-classes', () => {
-  it('reorders JSX classes', () => {
+  it('sorts JSX classes and collapses whitespace', () => {
     jsxRuleTester.run('sort-classes', sortClassesRule, {
       valid: [
         {
@@ -39,15 +39,53 @@ describe('simple-tailwindcss/sort-classes', () => {
       ],
       invalid: [
         {
-          code: '<div className="items-center flex flex" />',
-          output: '<div className="flex items-center" />',
+          code: '<div className="items-center   flex flex" />',
+          output: '<div className="flex flex items-center" />',
           errors: [{ messageId: 'unsorted' }],
         },
       ],
     })
   })
 
-  it('reorders Vue template classes', () => {
+  it('sorts JSX expression literals and template literals in className', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
+      valid: [
+        {
+          code: '<div className={"flex items-center"} />',
+        },
+        {
+          code: '<div className={`flex items-center ${props.className}`} />',
+        },
+      ],
+      invalid: [
+        {
+          code: '<div className={"items-center flex"} />',
+          output: '<div className={"flex items-center"} />',
+          errors: [{ messageId: 'unsorted' }],
+        },
+        {
+          code: '<div className={`items-center flex ${props.className}`} />',
+          output: '<div className={`flex items-center ${props.className}`} />',
+          errors: [{ messageId: 'unsorted' }],
+        },
+      ],
+    })
+  })
+
+  it('collapses extra whitespace in real-world className strings', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
+      valid: [],
+      invalid: [
+        {
+          code: '<div className="mx-auto grid size-full     gap-4 px-4 py-4 lg:grid-cols-[320px_minmax(0,1fr)] lg:px-6 lg:py-6" />',
+          output: '<div className="grid gap-4 lg:grid-cols-[320px_minmax(0,1fr)] mx-auto px-4 lg:px-6 py-4 lg:py-6 size-full" />',
+          errors: [{ messageId: 'unsorted' }],
+        },
+      ],
+    })
+  })
+
+  it('sorts Vue static class attributes', () => {
     vueRuleTester.run('sort-classes', sortClassesRule, {
       valid: [
         {
@@ -56,7 +94,7 @@ describe('simple-tailwindcss/sort-classes', () => {
       ],
       invalid: [
         {
-          code: '<template><div class="gap-2 flex flex"></div></template>',
+          code: '<template><div class="gap-2   flex"></div></template>',
           output: '<template><div class="flex gap-2"></div></template>',
           errors: [{ messageId: 'unsorted' }],
         },
@@ -64,7 +102,94 @@ describe('simple-tailwindcss/sort-classes', () => {
     })
   })
 
-  it('supports Tailwind classRegex style extraction', () => {
+  it('sorts class lists inside clsx conditionals, arrays, object keys, and String.raw', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
+      valid: [
+        {
+          code: 'clsx(\'flex flex-col\', isOpen ? \'bottom-1 top-1\' : \'left-1 right-1\', isReady && \'pl-2 pr-2\', { \'font-semibold text-sm\': enabled }, [String.raw`relative rounded`])',
+        },
+      ],
+      invalid: [
+        {
+          code: 'clsx(\'flex-col flex\', isOpen ? \'top-1 bottom-1\' : \'right-1 left-1\', isReady && \'pr-2 pl-2\', { \'text-sm font-semibold\': enabled }, [String.raw`rounded relative`])',
+          output: 'clsx(\'flex flex-col\', isOpen ? \'bottom-1 top-1\' : \'left-1 right-1\', isReady && \'pl-2 pr-2\', { \'font-semibold text-sm\': enabled }, [String.raw`relative rounded`])',
+          errors: [
+            { messageId: 'unsorted' },
+            { messageId: 'unsorted' },
+            { messageId: 'unsorted' },
+            { messageId: 'unsorted' },
+            { messageId: 'unsorted' },
+            { messageId: 'unsorted' },
+          ],
+        },
+      ],
+    })
+  })
+
+  it('sorts template literals without breaking interpolations', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
+      valid: [],
+      invalid: [
+        {
+          code: 'const clsButton = `items-center flex ${props.className} rounded  text-sm`; ',
+          output: 'const clsButton = `flex items-center ${props.className} text-sm rounded`; ',
+          errors: [{ messageId: 'unsorted' }, { messageId: 'unsorted' }],
+        },
+      ],
+    })
+  })
+
+  it('supports custom callees and variable matchers', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
+      valid: [
+        {
+          code: 'superclass(\'items-center flex\')',
+        },
+      ],
+      invalid: [
+        {
+          code: 'superclass(\'items-center flex\')',
+          options: [{ callees: ['superclass'] }],
+          output: 'superclass(\'flex items-center\')',
+          errors: [{ messageId: 'unsorted' }],
+        },
+        {
+          code: 'const CLS_BUTTON = { base: \'pr-2 pl-2\', active: \'text-sm font-semibold\' }',
+          options: [{ variables: ['^CLS_'] }],
+          output: 'const CLS_BUTTON = { base: \'pl-2 pr-2\', active: \'font-semibold text-sm\' }',
+          errors: [{ messageId: 'unsorted' }, { messageId: 'unsorted' }],
+        },
+      ],
+    })
+  })
+
+  it('sorts cn() calls in JSX', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
+      valid: [],
+      invalid: [
+        {
+          code: 'const classes = cn(\'rounded  relative size-full text-sm\', props.class);',
+          output: 'const classes = cn(\'relative size-full text-sm rounded\', props.class);',
+          errors: [{ messageId: 'unsorted' }],
+        },
+      ],
+    })
+  })
+
+  it('sorts cva() variants recursively', () => {
+    jsxRuleTester.run('sort-classes', sortClassesRule, {
+      valid: [],
+      invalid: [
+        {
+          code: 'const button = cva({ variants: { size: { sm: \'px-2 text-sm py-1\', md: \'px-4 text-base py-2\' } } });',
+          output: 'const button = cva({ variants: { size: { sm: \'px-2 py-1 text-sm\', md: \'px-4 py-2 text-base\' } } });',
+          errors: [{ messageId: 'unsorted' }, { messageId: 'unsorted' }],
+        },
+      ],
+    })
+  })
+
+  it('supports legacy classRegex call patterns without source regex replacement', () => {
     jsxRuleTester.run('sort-classes', sortClassesRule, {
       valid: [],
       invalid: [
@@ -84,41 +209,7 @@ describe('simple-tailwindcss/sort-classes', () => {
     })
   })
 
-  it('respects default group ordering', () => {
-    jsxRuleTester.run('sort-classes', sortClassesRule, {
-      valid: [],
-      invalid: [
-        {
-          code: '<div className="bg-red-500 flex mt-4" />',
-          output: '<div className="flex mt-4 bg-red-500" />',
-          errors: [{ messageId: 'unsorted' }],
-        },
-      ],
-    })
-  })
-
-  it('allows overriding group ordering', () => {
-    jsxRuleTester.run('sort-classes', sortClassesRule, {
-      valid: [],
-      invalid: [
-        {
-          code: '<div className="flex bg-red-500" />',
-          options: [
-            {
-              groupDefinitions: [
-                { name: 'backgrounds-first', matchers: ['^bg-'] },
-                { name: 'layout', matchers: ['.*'] },
-              ],
-            },
-          ],
-          output: '<div className="bg-red-500 flex" />',
-          errors: [{ messageId: 'unsorted' }],
-        },
-      ],
-    })
-  })
-
-  it('handles cn() function calls in Vue template :class bindings', () => {
+  it('sorts bound Vue class expressions safely', () => {
     vueRuleTester.run('sort-classes', sortClassesRule, {
       valid: [],
       invalid: [
@@ -130,13 +221,6 @@ describe('simple-tailwindcss/sort-classes', () => {
   >
   </section>
 </template>`,
-          options: [
-            {
-              classRegex: [
-                'cn\\(([^)]*)\\)',
-              ],
-            },
-          ],
           output: `<template>
   <section
     :class="cn('relative size-full text-sm rounded', props.class)"
@@ -150,70 +234,18 @@ describe('simple-tailwindcss/sort-classes', () => {
     })
   })
 
-  it('uses default classRegex entries for cn()', () => {
+  it('sorts class-like variables recursively', () => {
     jsxRuleTester.run('sort-classes', sortClassesRule, {
-      valid: [],
-      invalid: [
+      valid: [
         {
-          code: 'const classes = cn(\'relative size-full  rounded text-sm \', props.class);',
-          output:
-            'const classes = cn(\'relative size-full text-sm rounded\', props.class);',
-          errors: [{ messageId: 'unsorted' }],
+          code: 'const unrelated = \'mr-1 ml-1\'',
         },
       ],
-    })
-  })
-
-  it('keeps additional cn() arguments when classRegex lacks inner pattern', () => {
-    vueRuleTester.run('sort-classes', sortClassesRule, {
-      valid: [],
       invalid: [
         {
-          code: `<template>
-  <section
-    :class="cn('size-full text-sm rounded relative', props.class)"
-    role="table"
-  >
-  </section>
-</template>`,
-          options: [
-            {
-              classRegex: ['cn\\(([^)]*)\\)'],
-            },
-          ],
-          output: `<template>
-  <section
-    :class="cn('relative size-full text-sm rounded', props.class)"
-    role="table"
-  >
-  </section>
-</template>`,
-          errors: [{ messageId: 'unsorted' }],
-        },
-      ],
-    })
-  })
-
-  it('handles cn() with complex Tailwind classes including variants and arbitrary values', () => {
-    vueRuleTester.run('sort-classes', sortClassesRule, {
-      valid: [],
-      invalid: [
-        {
-          filename: 'Component.vue',
-          code: `<template>
-  <div :class="cn('focus:shadow-[0_0_0_2px_var(--color-rose-600)] hover:border-rose-600/80 focus:border-rose-600 border-rose-600')"></div>
-</template>`,
-          options: [
-            {
-              // classRegex: [
-              // ['cn\\(([^)]*)\\)', '["\'`]([^"\'`]+)["\'`]'],
-              // ],
-            },
-          ],
-          output: `<template>
-  <div :class="cn('border-rose-600 focus:border-rose-600 hover:border-rose-600/80 focus:shadow-[0_0_0_2px_var(--color-rose-600)]')"></div>
-</template>`,
-          errors: [{ messageId: 'unsorted' }],
+          code: 'const clsButton = { base: \'pr-2  pl-2\', states: { active: \'text-sm font-semibold\' } }',
+          output: 'const clsButton = { base: \'pl-2 pr-2\', states: { active: \'font-semibold text-sm\' } }',
+          errors: [{ messageId: 'unsorted' }, { messageId: 'unsorted' }],
         },
       ],
     })

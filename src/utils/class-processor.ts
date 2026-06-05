@@ -1,5 +1,4 @@
 import type { TailwindGroupDefinition } from '../config/group-definitions.js'
-import { twMerge } from 'tailwind-merge'
 import { defaultGroupDefinitions } from '../config/group-definitions.js'
 
 const WHITESPACE_RE = /\s+/
@@ -118,13 +117,13 @@ function formatWithGroups(value: string, compiledGroups: CompiledGroupDefinition
   const sortedTokens = [...tokens].sort((a, b) =>
     compareClasses(a, b, compiledGroups, cache),
   )
-  const merged = collapseWhitespace(twMerge(sortedTokens.join(' ')))
+  const sorted = sortedTokens.join(' ')
 
-  if (merged === collapsed) {
+  if (sorted === collapsed) {
     return collapsed === value ? null : collapsed
   }
 
-  return merged
+  return sorted
 }
 
 const defaultCompiledGroups = compileGroupDefinitions(defaultGroupDefinitions)
