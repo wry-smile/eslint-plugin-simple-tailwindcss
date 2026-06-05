@@ -46,8 +46,6 @@ export default [
 ]
 ```
 
-If you use a config factory such as `@antfu/eslint-config`, the same rule still applies: adding the plugin is not enough, you must also enable `simple-tailwindcss/sort-classes`.
-
 Out of the box, the rule already covers:
 
 - `class` in Vue templates
